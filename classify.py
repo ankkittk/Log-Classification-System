@@ -1,25 +1,30 @@
 from processor_regex import classify_with_regex
+from processor_bert import classify_with_bert
+from processor_llm import classify_with_llm
 import numpy as np
 
-rare_sources = np.load("rare_sources.npy", allow_pickle=True)
+rare_sources = np.load("training/rare_sources.npy", allow_pickle=True)
 
 def classify(logs):
     for src, log in logs:
-        print(classify_log(src, log))
+        label, path = classify_log(src, log)
+        print(f"{label}")
 
-def classify_log(src, log_message):
+def classify_log(src, log_message, path = "regex"):
     if src in rare_sources:
-        pass #LLM
+        label = classify_with_llm(log_message)
+        path = "llm"
     else:
         label = classify_with_regex(log_message)
         if label == "Unclassified":
-            pass #BERT
-        return label
+            label = classify_with_bert(log_message)[0]
+            path = "bert"
+    return label, path
 
 if __name__ == "__main__":
     logs = [
         ("ModernCRM", "IP 192.168.133.114 blocked due to potential attack"),
-        ("BillingSystem", "User 12345 logged in."),
+        ("BillingSystem", "User User12345 logged in."),
         ("AnalyticsEngine", "File data_6957.csv uploaded successfully by user User265."),
         ("AnalyticsEngine", "Backup completed successfully."),
         ("ModernHR", "GET /v2/54fadb412c4e40cdbaed9335e4c35a9e/servers/detail HTTP/1.1 RCODE  200 len: 1583 time: 0.1878400"),
