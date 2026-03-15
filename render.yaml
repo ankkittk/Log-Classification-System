@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: log-classification-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false   # you'll fill this in the Render dashboard

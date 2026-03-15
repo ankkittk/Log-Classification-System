@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Log Classifier</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c6af7;
+    --accent2: #2dd4bf;
+    --warn: #f59e0b;
+    --error: #f87171;
+    --success: #34d399;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,106,247,0.15), transparent),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  header {
+    padding: 2.5rem 2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .card-title {
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 0.6rem 0.85rem;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,247,0.12);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.65rem 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: opacity 0.15s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  .actions { display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center; }
+
+  /* Results */
+  .result-area {
+    display: none;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+  }
+
+  .result-area.visible { display: block; }
+
+  .result-row {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 1rem;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .result-source {
+    font-size: 0.72rem;
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
+  .result-msg {
+    font-size: 0.78rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-user    { background: rgba(45,212,191,0.15); color: var(--accent2); border: 1px solid rgba(45,212,191,0.3); }
+  .badge-system  { background: rgba(124,106,247,0.15); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
+  .badge-error   { background: rgba(248,113,113,0.15); color: var(--error); border: 1px solid rgba(248,113,113,0.3); }
+  .badge-security{ background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-default { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
+
+  /* CSV section */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(124,106,247,0.05); }
+  .drop-zone p { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
+  .drop-zone strong { color: var(--text); font-size: 0.9rem; }
+
+  /* Spinner */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  .spinner.active { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Batch add */
+  .log-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .log-item {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .remove-btn {
+    background: none; border: none; color: var(--error);
+    cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem;
+    border-radius: 4px; transition: background 0.15s;
+  }
+  .remove-btn:hover { background: rgba(248,113,113,0.1); }
+
+  .pipeline-badge {
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  footer {
+    max-width: 900px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>Log <span>Classifier</span></h1>
+    <div class="subtitle">Regex → BERT → LLM · Hybrid Pipeline</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Single classify -->
+  <div class="card">
+    <div class="card-title">Single Log Entry</div>
+    <div class="row">
+      <div>
+        <label>Source</label>
+        <input id="src" type="text" placeholder="e.g. ModernCRM" />
+      </div>
+      <div>
+        <label>Log Message</label>
+        <input id="msg" type="text" placeholder="e.g. User User123 logged in." />
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="classifySingle()">
+        <span>Classify</span>
+        <div class="spinner" id="sp1"></div>
+      </button>
+      <button class="btn btn-outline" onclick="fillExample()">Load example</button>
+    </div>
+    <div class="result-area" id="singleResult"></div>
+  </div>
+
+  <!-- Batch classify -->
+  <div class="card">
+    <div class="card-title">Batch — Multiple Logs</div>
+    <div class="log-list" id="logList"></div>
+    <button class="btn btn-outline" style="margin-top:0.75rem" onclick="addRow()">+ Add row</button>
+    <div class="actions">
+      <button class="btn" onclick="classifyBatch()">
+        <span>Classify All</span>
+        <div class="spinner" id="sp2"></div>
+      </button>
+    </div>
+    <div class="result-area" id="batchResult"></div>
+  </div>
+
+  <!-- CSV upload -->
+  <div class="card">
+    <div class="card-title">CSV Bulk Upload</div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvFile').click()">
+      <strong>Drop CSV here or click to browse</strong>
+      <p>Required columns: <code>source</code>, <code>log_message</code></p>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(this.files[0])"/>
+    </div>
+    <div class="actions" id="csvActions" style="display:none">
+      <button class="btn" id="csvBtn" onclick="uploadCSV()">
+        <span>Classify & Download</span>
+        <div class="spinner" id="sp3"></div>
+      </button>
+      <span id="csvName" style="font-size:0.78rem;color:var(--muted)"></span>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Log Classification System · Hybrid ML Pipeline</span>
+  <a href="/docs" target="_blank">API Docs →</a>
+</footer>
+
+<script>
+const LABELS = {
+  "user action":            "badge-user",
+  "system notification":    "badge-system",
+  "workflow error":         "badge-error",
+  "deprecation warning":    "badge-security",
+};
+
+function badgeClass(label) {
+  return LABELS[(label || "").toLowerCase()] || "badge-default";
+}
+
+function renderResults(container, results) {
+  container.innerHTML = results.map(r => `
+    <div class="result-row">
+      <span class="result-source">${r.source}</span>
+      <span class="result-msg" title="${r.log_message}">${r.log_message}</span>
+      <span class="badge ${badgeClass(r.label)}">${r.label}</span>
+    </div>
+  `).join('');
+  container.classList.add('visible');
+}
+
+async function classifySingle() {
+  const src = document.getElementById('src').value.trim();
+  const msg = document.getElementById('msg').value.trim();
+  if (!src || !msg) return alert('Fill in both Source and Log Message.');
+  const sp = document.getElementById('sp1');
+  sp.classList.add('active');
+  try {
+    const res = await fetch('/classify/single', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({source: src, log_message: msg})
+    });
+    const data = await res.json();
+    const container = document.getElementById('singleResult');
+    renderResults(container, [data]);
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { sp.classList.remove('active'); }
+}
+
+// Batch
+let rowCount = 0;
+function addRow(src='', msg='') {
+  rowCount++;
+  const id = rowCount;
+  const div = document.createElement('div');
+  div.className = 'log-item';
+  div.id = 'row-' + id;
+  div.innerHTML = `
+    <input type="text" placeholder="Source" value="${src}" class="row-src"/>
+    <input type="text" placeholder="Log message" value="${msg}" class="row-msg"/>
+    <button class="remove-btn" onclick="document.getElementById('row-${id}').remove()">✕</button>
+  `;
+  document.getElementById('logList').appendChild(div);
+}
+
+async function classifyBatch() {
+  const rows = document.querySelectorAll('.log-item');
+  const logs = [];
+  rows.forEach(r => {
+    const src = r.querySelector('.row-src').value.trim();
+    const msg = r.querySelector('.row-msg').value.trim();
+    if (src && msg) logs.push({source: src, log_message: msg});
+  });
+  if (!logs.length) return alert('Add at least one log entry.');
+  const sp = document.getElementById('sp2');
+  sp.classList.add('active');
+  try {
+    const res = await fetch('/classify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({logs})
+    });
+    const data = await res.json();
+    renderResults(document.getElementById('batchResult'), data.results);
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { sp.classList.remove('active'); }
+}
+
+// CSV
+let csvFile = null;
+function handleCSV(file) {
+  csvFile = file;
+  document.getElementById('csvName').textContent = file.name;
+  document.getElementById('csvActions').style.display = 'flex';
+}
+async function uploadCSV() {
+  if (!csvFile) return;
+  const sp = document.getElementById('sp3');
+  sp.classList.add('active');
+  const fd = new FormData();
+  fd.append('file', csvFile);
+  try {
+    const res = await fetch('/classify/csv', {method:'POST', body: fd});
+    if (!res.ok) { const e = await res.json(); alert(e.detail); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'classified_logs.csv'; a.click();
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { sp.classList.remove('active'); }
+}
+
+// Drag-drop
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleCSV(f);
+});
+
+// Prefill example
+function fillExample() {
+  document.getElementById('src').value = 'ModernCRM';
+  document.getElementById('msg').value = 'IP 192.168.133.114 blocked due to potential attack';
+}
+
+// Add 2 starter rows
+addRow('BillingSystem', 'User User12345 logged in.');
+addRow('LegacyCRM', "The 'ReportGenerator' module will be retired in version 4.0.");
+</script>
+</body>
+</html>

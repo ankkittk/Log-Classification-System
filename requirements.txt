@@ -1,0 +1,10 @@
+pandas>=1.5.0
+numpy>=1.21.0
+scikit-learn>=1.2.0
+sentence-transformers>=2.2.0
+joblib>=1.2.0
+python-dotenv>=1.0.0
+groq>=0.7.0
+fastapi==0.115.6
+uvicorn>=0.29.0
+python-multipart>=0.0.9
